@@ -91,3 +91,35 @@
    "Snapshot Plus" "snapshot-plus"
    "SOCR8" "socr8"
    "Casual" "casual"})
+
+(defn add-symbols [card-text]
+  (let [icon-map [
+          ["\\[credits?\\]" "credit"]
+          ["\\[\\$\\]" "credit"]
+          ["\\[click\\]" "click"]
+          ["\\[subroutine\\]" "subroutine"]
+          ["\\[recurring[ -]credits?\\]" "recurring-credit"]
+          ["1 ?\\[(memory unit|mu)\\]" "mu1"]
+          ["2 ?\\[(memory unit|mu)\\]" "mu2"]
+          ["3 ?\\[(memory unit|mu)\\]" "mu3"]
+          ["\\[Memory Unit|mu\\]" "mu"]
+          ["\\[link\\]" "link"]
+          ["\\[trash\\]" "trash"]
+          ["\\[adam\\]" "adam"]
+          ["\\[anarch\\]" "anarch"]
+          ["\\[apex\\]" "apex"]
+          ["\\[criminal\\]" "criminal"]
+          ["\\[haas-bioroid\\]" "haas-bioroid"]
+          ["\\[hb\\]" "haas-bioroid"]
+          ["\\[jinteki\\]" "jinteki"]
+          ["\\[nbn\\]" "nbn"]
+          ["\\[shaper\\]" "shaper"]
+          ["\\[sunny\\]" "sunny"]
+          ["\\[weyland-consortium\\]" "weyland-consortium"]
+          ["\\[weyland\\]" "weyland-consortium"]
+        ]
+        icon-span (fn [icon-class]
+                    (str "<span class='anr-icon " icon-class "'></span>"))
+        icon-replacer (fn [text [pattern icon-class]]
+                        (s/replace text (re-pattern (str "(?i)" pattern)) (icon-span icon-class)))]
+    (if card-text (reduce icon-replacer card-text icon-map) "")))
