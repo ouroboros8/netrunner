@@ -103,9 +103,10 @@
 
 (defn unbroken-subroutines-choice
   "Takes an ice, returns the ubroken subroutines for a choices prompt"
-  [ice]
-  (for [sub (remove :broken (:subroutines ice))]
-    (make-label (:sub-effect sub))))
+  ([ice] (unbroken-subroutines-choice ice (constantly true)))
+  ([ice pred]
+  (for [sub (remove :broken (filter pred (:subroutines ice)))]
+    (make-label (:sub-effect sub)))))
 
 (defn resolve-subroutine
   [ice sub]
