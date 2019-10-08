@@ -273,7 +273,9 @@
                  (when (and target-count (< 1 target-count))
                    (str " (" (count broken-subs)
                         " of " target-count ")")))
-    :choices (req (concat (breakable-subroutines-choice ice)
+    :choices (req (concat (if-let [pred (:subs-req args)]
+                            (breakable-subroutines-choice ice pred)
+                            (breakable-subroutines-choice ice))
                           (when-not (and (:all args)
                                          (pos? (count (breakable-subroutines-choice ice)))
                                          (< 1 target-count))
