@@ -1229,7 +1229,7 @@
                                 (< 1 (count (remove :broken (:subroutines current-ice))))))
                  :cost [:trash]
                  :prompt "Select the subroutine to NOT break"
-                 :choices (req (unbroken-subroutines-choice current-ice))
+                 :choices (req (breakable-subroutines-choice current-ice))
                  :msg (msg (let [subroutines (:subroutines current-ice)
                                  target (->> subroutines
                                              (filter #(and (not (:broken %))

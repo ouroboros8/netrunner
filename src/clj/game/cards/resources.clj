@@ -2127,7 +2127,7 @@
                           (:title current-ice) " resolve")
                    :effect (effect
                              (continue-ability
-                               (let [unbroken-subs (unbroken-subroutines-choice current-ice)]
+                               (let [unbroken-subs (breakable-subroutines-choice current-ice)]
                                  (runner-break unbroken-subs))
                                card nil))}]})
 

@@ -101,9 +101,9 @@
   [state ice]
   (update! state :corp (reset-all-subs ice)))
 
-(defn unbroken-subroutines-choice
+(defn breakable-subroutines-choice
   "Takes an ice, returns the ubroken subroutines for a choices prompt"
-  ([ice] (unbroken-subroutines-choice ice (constantly true)))
+  ([ice] (breakable-subroutines-choice ice (constantly true)))
   ([ice pred]
   (for [sub (remove :broken (filter pred (:subroutines ice)))]
     (make-label (:sub-effect sub)))))
@@ -273,9 +273,9 @@
                  (when (and target-count (< 1 target-count))
                    (str " (" (count broken-subs)
                         " of " target-count ")")))
-    :choices (req (concat (unbroken-subroutines-choice ice)
+    :choices (req (concat (breakable-subroutines-choice ice)
                           (when-not (and (:all args)
-                                         (pos? (count (unbroken-subroutines-choice ice)))
+                                         (pos? (count (breakable-subroutines-choice ice)))
                                          (< 1 target-count))
                             '("Done"))))
     :effect (req (if (= "Done" target)
@@ -284,7 +284,7 @@
                    (let [sub (first (filter #(and (not (:broken %)) (= target (make-label (:sub-effect %)))) (:subroutines ice)))
                          ice (break-subroutine ice sub)
                          broken-subs (cons sub broken-subs)]
-                     (if (and (pos? (count (unbroken-subroutines-choice ice)))
+                     (if (and (pos? (count (breakable-subroutines-choice ice)))
                               (< (count broken-subs) (if (pos? target-count) target-count (count (:subroutines ice)))))
                        (continue-ability state side (break-subroutines-impl ice target-count broken-subs args) card nil)
                        (complete-with-result state side eid {:broken-subs broken-subs
@@ -331,7 +331,7 @@
                                            (if (and (not early-exit)
                                                     (:repeatable args)
                                                     (seq broken-subs)
-                                                    (pos? (count (unbroken-subroutines-choice ice)))
+                                                    (pos? (count (breakable-subroutines-choice ice)))
                                                     (can-pay? state side eid (get-card state card) nil cost))
                                              (continue-ability state side (break-subroutines ice cost n args) card nil)
                                              (effect-completed state side eid)))))))})))
