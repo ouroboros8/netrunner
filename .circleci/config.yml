@@ -23,14 +23,6 @@ commands:
             - ~/.lein
           key: lein-deps-{{ checksum "project.clj" }}
 
-  persist_resources:
-    description: Persists the resources directory for use in later steps
-    steps:
-      - persist_to_workspace:
-          root: .
-          paths:
-            - resources
-
 jobs:
   test:
     executor: lein
@@ -49,7 +41,7 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
-            - resources/
+            - resources/public/lib
 
   build_css:
     docker:
@@ -58,7 +50,10 @@ jobs:
       - checkout
       - run: npm install -g stylus
       - run: stylus src/css -o resources/public/css
-      - persist_resources
+      - persist_to_workspace:
+          root: .
+          paths:
+            - resources/public/css
 
   build_cljs:
     executor: lein
@@ -66,16 +61,46 @@ jobs:
       - checkout
       - caching_lein_deps
       - run: lein cljsbuild once prod
-      - persist_resources
+      - persist_to_workspace:
+          root: .
+          paths:
+            - resources/public/js/app10.js
+
+  fetch_card_data:
+    executor: lein
+    steps:
+      - checkout
+      - caching_lein_deps
+      - run: lein fetch --no-db
+      - persist_to_workspace:
+          root: .
+          paths:
+            - data
+            - resources/public/img/cards
 
   build_uberjar:
     executor: lein
     steps:
       - checkout
+      - attach_workspace:
+          at: .
+      - run: ls -la resources/public/css/
+      - run: ls -la resources/public/img/cards/
       - caching_lein_deps
       - run: lein uberjar
       - store_artifacts:
           path: target/netrunner-standalone.jar
+      - persist_to_workspace:
+          root: .
+          paths:
+            - target/netrunner-standalone.jar
+
+  # upload_artifact:
+  #   docker:
+  #     - image: circleci/golang:1.8
+  #   steps:
+  #     - attach_workspace:
+  #         at: .
 
 workflows:
   version: 2
@@ -85,28 +110,35 @@ workflows:
       - test
 
       - install_js_deps:
-          filters:
-            branches:
-              only: master
+          # filters:
+          #   branches:
+          #     only: master
           requires: [test]
 
       - build_css:
-          filters:
-            branches:
-              only: master
+          # filters:
+          #   branches:
+          #     only: master
           requires: [test]
 
       - build_cljs:
-          filters:
-            branches:
-              only: master
+          # filters:
+          #   branches:
+          #     only: master
+          requires: [test]
+
+      - fetch_card_data:
+          # filters:
+          #   branches:
+          #     only: master
           requires: [test]
 
       - build_uberjar:
-          filters:
-            branches:
-              only: master
+          # filters:
+          #   branches:
+          #     only: master
           requires:
             - install_js_deps
             - build_css
             - build_cljs
+            - fetch_card_data
