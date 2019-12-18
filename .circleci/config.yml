@@ -1,20 +1,112 @@
-version: 2
+version: 2.1
 
-jobs:
-  build:
+executors:
+  lein:
     docker:
-      - image: circleci/clojure:lein-2.7.1
+      - image: circleci/clojure:openjdk-8-lein
     environment:
-      LEIN_ROOT: nbd
+      LEIN_ROOT: true
       JVM_OPTS: -Xmx3200m
+
+commands:
+  caching_lein_deps:
+    description: >
+      Restore cached dependencies for this version of project.clj (if any),
+      then run lein deps and cache the result.
     steps:
-      - checkout
       - restore_cache:
           key: lein-deps-{{ checksum "project.clj" }}
       - run: lein deps
       - save_cache:
           paths:
-            - ~/project/.m2
-            - ~/project/.lein
+            - ~/.m2
+            - ~/.lein
           key: lein-deps-{{ checksum "project.clj" }}
+
+  persist_resources:
+    description: Persists the resources directory for use in later steps
+    steps:
+      - persist_to_workspace:
+          root: .
+          paths:
+            - resources
+
+jobs:
+  test:
+    executor: lein
+    steps:
+      - checkout
+      - caching_lein_deps
       - run: lein do fetch --no-db --no-card-images, eftest
+
+  install_js_deps:
+    docker:
+      - image: node
+    steps:
+      - checkout
+      - run: npm install -g bower
+      - run: bower --allow-root install
+      - persist_to_workspace:
+          root: .
+          paths:
+            - resources/
+
+  build_css:
+    docker:
+      - image: node
+    steps:
+      - checkout
+      - run: npm install -g stylus
+      - run: stylus src/css -o resources/public/css
+      - persist_resources
+
+  build_cljs:
+    executor: lein
+    steps:
+      - checkout
+      - caching_lein_deps
+      - run: lein cljsbuild once prod
+      - persist_resources
+
+  build_uberjar:
+    executor: lein
+    steps:
+      - checkout
+      - caching_lein_deps
+      - run: lein uberjar
+      - store_artifacts:
+          path: target/netrunner-standalone.jar
+
+workflows:
+  version: 2
+  test_and_build:
+    jobs:
+
+      - test
+
+      - install_js_deps:
+          filters:
+            branches:
+              only: master
+          requires: [test]
+
+      - build_css:
+          filters:
+            branches:
+              only: master
+          requires: [test]
+
+      - build_cljs:
+          filters:
+            branches:
+              only: master
+          requires: [test]
+
+      - build_uberjar:
+          filters:
+            branches:
+              only: master
+          requires:
+            - install_js_deps
+            - build_css
+            - build_cljs
