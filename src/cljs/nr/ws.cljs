@@ -16,34 +16,35 @@
 
 (enable-console-print!)
 
-(let [ws-handlers (atom {})]
-  (defn register-ws-handler! [event handler-fn]
-    (swap! ws-handlers assoc event handler-fn))
+(defonce ws-handlers (atom {}))
 
-  (defn handle-state-msg [[old-state new-state]]
-    (when (= (:type old-state) (:type new-state))
-      (when (and (:open? old-state)
-                 (not (:open? new-state))
-                 (not (:first-open? new-state)))
-        (cb/non-game-toast "Lost connection to server. Reconnecting." "error" {:time-out 0 :close-button true}))
-      (when (and (not (:open? old-state))
-                 (:open? new-state)
-                 (not (:first-open? new-state)))
-        (.clear js/toastr)
-        (cb/non-game-toast "Reconnected to server" "success" nil))))
+(defn register-ws-handler! [event handler-fn]
+  (swap! ws-handlers assoc event handler-fn))
 
-  (defn handle-netrunner-msg [[event msg]]
-    (let [handler (get @ws-handlers event)]
-      (cond
-        handler (handler msg)
-        msg (println "unknown game socket msg" event msg))))
+(defn handle-state-msg [[old-state new-state]]
+  (when (= (:type old-state) (:type new-state))
+    (when (and (:open? old-state)
+               (not (:open? new-state))
+               (not (:first-open? new-state)))
+      (cb/non-game-toast "Lost connection to server. Reconnecting." "error" {:time-out 0 :close-button true}))
+    (when (and (not (:open? old-state))
+               (:open? new-state)
+               (not (:first-open? new-state)))
+      (.clear js/toastr)
+      (cb/non-game-toast "Reconnected to server" "success" nil))))
 
-  (defn event-msg-handler [msg]
-    (let [[event-type data] (:event msg)]
-      (case event-type
-        :chsk/handshake nil
-        :chsk/state (handle-state-msg data)
-        :chsk/recv (handle-netrunner-msg data)
-        (println "unknown event message" event-type data)))))
+(defn handle-netrunner-msg [[event msg]]
+  (let [handler (get @ws-handlers event)]
+    (cond
+      handler (handler msg)
+      msg (println "unknown game socket msg" event msg))))
+
+(defn event-msg-handler [msg]
+  (let [[event-type data] (:event msg)]
+    (case event-type
+      :chsk/handshake nil
+      :chsk/state (handle-state-msg data)
+      :chsk/recv (handle-netrunner-msg data)
+      (println "unknown event message" event-type data))))
 
 (start-client-chsk-router! <ws-recv event-msg-handler)
