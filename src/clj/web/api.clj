@@ -47,6 +47,7 @@
            (POST "/forgot" [] auth/forgot-password-handler)
            (GET "/reset/:token" [] pages/reset-password-page)
            (POST "/reset/:token" [] auth/reset-password-handler)
+           (GET "/verify/:token" [] auth/verify-email)
 
            (GET "/ws" req ws/handshake-handler)
            (POST "/ws" req ws/post-handler)

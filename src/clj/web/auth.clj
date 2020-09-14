@@ -64,6 +64,17 @@
                      (update-in [:user :_id] str)))
         (handler req)))))
 
+(defn verify-email
+  [{{:keys [token]} :params}]
+  (try
+    (let [claims (jwt/unsign token (:secret auth-config))]
+      :doSomethingWithTheClaim ;;may throw other exceptions??
+      (redirect "/"))
+    (catch Exception e
+      (if (= :exp (:cause (ex-data e)))
+        (response 401 {:message "Token expired"})
+        (response 401 {:message "Not authorized"})))))
+
 (defn register-handler
   [{{:keys [username password confirm-password email]} :params
     :as request}]
