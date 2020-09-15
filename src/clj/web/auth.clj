@@ -5,7 +5,7 @@
             [aero.core :refer [read-config]]
             [clj-time.core :refer [days from-now]]
             [monger.collection :as mc]
-            [monger.result :refer [acknowledged?]]
+            [monger.result :refer [acknowledged? updated-existing?]]
             [monger.operators :refer :all]
             [buddy.sign.jwt :as jwt]
             [digest]
@@ -64,16 +64,29 @@
                      (update-in [:user :_id] str)))
         (handler req)))))
 
+(defn mark-verified [email]
+  (let [result (mc/update db "users"
+                          {:email email}
+                          {"$set" {:verified true}})]
+    (updated-existing? result)))
+
 (defn verify-email
   [{{:keys [token]} :params}]
   (try
-    (let [claims (jwt/unsign token (:secret auth-config))]
-      :doSomethingWithTheClaim ;;may throw other exceptions??
-      (redirect "/"))
+    (let [claims (jwt/unsign token (:secret auth-config))
+          email (:email claims)]
+      (if (:exp claims)
+        (if (mark-verified email)
+          (redirect "/")
+          (response 500 {:message "Server error"}))
+        (response 401 {:message "Not authorized"})))
     (catch Exception e
-      (if (= :exp (:cause (ex-data e)))
-        (response 401 {:message "Token expired"})
-        (response 401 {:message "Not authorized"})))))
+      (if-let [{ex-type :type cause :cause} (ex-data e)]
+        (if (= ex-type :validation)
+          (if (= cause :exp)
+            (response 401 {:message "Token expired"})
+            (response 401 {:message "Not authorized"})))
+        (throw e)))))
 
 (defn register-handler
   [{{:keys [username password confirm-password email]} :params
