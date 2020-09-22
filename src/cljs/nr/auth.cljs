@@ -22,7 +22,7 @@
                    (= url "/forgot"))
             (swap! s assoc :flash-message "Reset password sent")
             (case (:status response)
-              401 (swap! s assoc :flash-message "Invalid login or password")
+              401 (swap! s assoc :flash-message (get-in response [:json :error]))
               421 (swap! s assoc :flash-message "No account with that email address exists")
               422 (swap! s assoc :flash-message "Username taken")
               423 (swap! s assoc :flash-message "Username too long")

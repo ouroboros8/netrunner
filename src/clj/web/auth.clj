@@ -134,12 +134,16 @@
     (if (and user
              (password/check password (:password user)))
 
-      (do (mc/update db "users"
-                     {:username username}
-                     {"$set" {:last-connection (java.util.Date.)}})
-          (assoc (response 200 {:message "ok"})
-                 :cookies {"session" (merge {:value (create-token user)}
-                                            (get-in server-config [:auth :cookie]))}))
+      ; If the user doesn't have an isverified key, allow them to
+      ; log in. This avoids breaking login for all legacy users.
+      (if (get user :isverified true)
+        (do (mc/update db "users"
+                       {:username username}
+                       {"$set" {:last-connection (java.util.Date.)}})
+            (assoc (response 200 {:message "ok"})
+                   :cookies {"session" (merge {:value (create-token user)}
+                                              (get-in server-config [:auth :cookie]))}))
+        (response 401 {:error "Please verify your email"}))
       (response 401 {:error "Invalid login or password"}))))
 
 (defn logout-handler [request]
