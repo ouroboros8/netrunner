@@ -67,7 +67,7 @@
 (defn mark-verified [email]
   (let [result (mc/update db "users"
                           {:email email}
-                          {"$set" {:verified true}})]
+                          {"$set" {:isverified true}})]
     (updated-existing? result)))
 
 (defn verify-email
@@ -119,6 +119,7 @@
                   :lastConnection   last-connection
                   :password         hash-pw
                   :isadmin          first-user
+                  :isverified       first-user
                   :options          {}})
       (when (not-empty demo-decks)
         (mc/insert-batch db "decks" (map #(-> %
