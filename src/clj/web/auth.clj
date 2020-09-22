@@ -110,7 +110,9 @@
           registration-date (java.util.Date.)
           last-connection registration-date
           hash-pw (password/encrypt password)
-          demo-decks (mc/find-maps db "decks" {:username "__demo__"})]
+          demo-decks (mc/find-maps db "decks" {:username "__demo__"})
+          ; If there's no email config, verify user email by default
+          auto-verify (nil? (get-in server-config [:email :host]))]
       (mc/insert db "users"
                  {:username         username
                   :email            email
@@ -119,7 +121,7 @@
                   :lastConnection   last-connection
                   :password         hash-pw
                   :isadmin          first-user
-                  :isverified       first-user
+                  :isverified       auto-verify
                   :options          {}})
       (when (not-empty demo-decks)
         (mc/insert-batch db "decks" (map #(-> %
